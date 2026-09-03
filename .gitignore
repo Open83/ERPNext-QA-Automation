@@ -1,4 +1,3 @@
-
 # Dependencies
 node_modules/
 
@@ -8,6 +7,12 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 
+# Screenshots and debug artifacts
+*.png
+*.log
+*.jpg
+*.jpeg
+
 # Authentication state (any location)
 **/.auth/
 playwright/.auth/
@@ -16,3 +21,13 @@ playwright/.auth/
 .env
 .env.local
 .env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
