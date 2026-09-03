@@ -1,0 +1,35 @@
+{
+  "name": "erpnext-qa-automation",
+  "version": "1.0.0",
+  "description": "ERPNext QA & Automation — Professional QA testing for ERPNext",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --project=chromium",
+    "test:auth": "playwright test tests/auth/",
+    "test:material-request": "playwright test tests/modules/material-request/",
+    "test:mr-ui": "playwright test tests/modules/material-request/ui/",
+    "test:mr-api": "playwright test tests/modules/material-request/api/",
+    "test:watch": "playwright test --watch",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report"
+  },
+  "keywords": [
+    "erpnext",
+    "qa",
+    "automation",
+    "playwright",
+    "testing"
+  ],
+  "author": "QA Automation Engineer",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.4.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
+}
