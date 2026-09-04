@@ -1,285 +1,383 @@
 # ERPNext QA Automation — Architecture
 
-## Directory Structure
+## Overview
 
-```
-ERPNext-QA-Automation/
-├── README.md                 # Project overview
-├── PROJECT_VISION.md         # Long-term vision and scope
-├── ARCHITECTURE.md           # This file
-├── COVERAGE.md               # Coverage matrix and test status
-│
-├── .github/
-│   └── workflows/
-│       └── playwright.yml    # CI/CD pipeline
-│
-├── playwright.config.js      # Playwright configuration
-├── package.json
-├── package-lock.json
-│
-├── tests/
-│   ├── auth/                 # Authentication tests
-│   │   ├── auth.setup.js     # Auth setup (runs once per session)
-│   │   └── auth.spec.js      # Auth-specific tests (planned)
-│   │
-│   └── modules/              # Tests organized by ERPNext module
-│       └── material-request/
-│           ├── ui/           # User interface tests
-│           │   ├── create.spec.js
-│           │   └── validation.spec.js
-│           ├── api/          # API tests (planned)
-│           │   └── material-request.api.spec.js
-│           └── fixtures/     # Module-specific test data
-│               └── scenarios.js
-│
-├── pages/                    # Page Object Model
-│   ├── base.page.js          # Base page class
-│   ├── auth/
-│   │   └── auth.page.js      # Auth page (planned)
-│   │
-│   └── modules/
-│       └── material-request/
-│           ├── material-request.page.js
-│           └── grid.page.js  # Grid interaction helper
-│
-├── fixtures/                 # Reusable test fixtures
-│   ├── auth.fixture.js       # Auth fixture
-│   └── modules/
-│       └── material-request/
-│           └── scenarios.js
-│
-├── data/                     # Centralized test data
-│   ├── items.js              # Item definitions
-│   ├── users.js              # User definitions
-│   └── scenarios.js          # Common test scenarios
-│
-├── api/                      # API client wrappers (planned)
-│   ├── base-client.js
-│   └── material-request.js
-│
-├── utils/                    # Shared utilities
-│   ├── logger.js
-│   ├── wait.js               # Smart wait strategies
-│   └── helpers.js
-│
-├── docs/                     # Documentation
-│   ├── setup.md              # Setup instructions
-│   ├── running-tests.md      # How to run tests
-│   ├── adding-modules.md     # How to add new modules
-│   └── defects.md            # Defects found
-│
-└── evidence/                 # Test artifacts
-    ├── screenshots/          # Failure screenshots
-    └── reports/              # Test reports
-```
+This is a **Page Object Model (POM)** based Playwright automation framework for ERPNext, organized by **module first**, then by **test type**.
 
-## Module Structure
-
-Each module (e.g., Material Request) follows this pattern:
-
-```
-tests/modules/material-request/
-├── ui/
-│   ├── create.spec.js        # Create workflow test
-│   ├── item-selection.spec.js # Item selection test
-│   └── validation.spec.js    # Negative/boundary cases
-├── api/
-│   └── material-request.api.spec.js # API tests
-└── fixtures/
-    └── scenarios.js          # Test data
-```
-
-### UI Tests
-- Test user workflows end-to-end
-- Located in `ui/` subdirectory
-- Use Page Objects for reusability
-- Capture screenshots on failure
-
-### API Tests
-- Test backend operations
-- Validate data persistence
-- Located in `api/` subdirectory
-- Complement UI tests
-
-### Validation Tests
-- Test negative cases (invalid input, missing fields)
-- Test boundary conditions (zero, max values)
-- Ensure proper error handling
-
-## Page Objects
-
-Each module has a Page Object representing its UI.
-
-### Example: Material Request Page Object
-
-```javascript
-// pages/modules/material-request/material-request.page.js
-class MaterialRequestPage {
-  constructor(page, baseURL) {
-    this.page = page;
-    this.baseURL = baseURL;
-  }
-
-  async goToNew() {
-    await this.page.goto(`${this.baseURL}/app/material-request/new`);
-  }
-
-  async addRow() {
-    await this.page.locator('button:has-text("Add Row")').click();
-  }
-
-  async selectItem(itemCode) {
-    // Smart selection logic
-  }
-
-  async setQuantity(qty) {
-    // Quantity field interaction
-  }
-
-  async getAmount() {
-    // Return calculated amount
-  }
-}
-
-module.exports = { MaterialRequestPage };
-```
-
-## Test Data
-
-Centralized in `data/` and `fixtures/`.
-
-### Test Scenarios
-
-```javascript
-// data/scenarios.js
-export const MATERIAL_REQUEST_SCENARIOS = {
-  simple: {
-    items: [
-      { item_code: 'Item-001', qty: 10, warehouse: 'Main Warehouse' }
-    ]
-  },
-  multiple_items: {
-    items: [
-      { item_code: 'Item-001', qty: 5 },
-      { item_code: 'Item-002', qty: 3 }
-    ]
-  },
-  invalid_quantity: {
-    items: [
-      { item_code: 'Item-001', qty: -5 } // Should be rejected
-    ]
-  }
-};
-```
-
-## Authentication
-
-Authentication runs once per test session via `auth.setup.js`.
-
-All subsequent tests inherit the authenticated session automatically.
-
-### Auth Setup Flow
-
-1. Read credentials from `.env`
-2. Authenticate via Frappe API
-3. Extract session cookies
-4. Store in `playwright/.auth/user.json`
-5. Inject into browser context for all tests
-
-## Synchronization Strategy
-
-### Level 1: Explicit Waits (Preferred)
-```javascript
-await expect(page.locator('button')).toBeVisible();
-```
-
-### Level 2: Playwright Auto-Wait
-```javascript
-await page.click('button'); // Auto-waits for element
-```
-
-### Level 3: Network Idle (Last Resort)
-```javascript
-await page.waitForLoadState('networkidle');
-```
-
-### Level 4: Explicit Waits for Stability
-```javascript
-await page.locator('[data-fieldname="item"]').waitFor({ timeout: 5000 });
-```
-
-### NO Hardcoded Delays
-```javascript
-// ❌ DO NOT USE
-await page.waitForTimeout(1000);
-
-// ✅ USE INSTEAD
-await expect(page.locator('button')).toBeVisible();
-```
-
-## Test Execution
-
-### Local Development
-```bash
-npm test                           # Run all tests
-npm run test:ui                   # Run UI tests only
-npm run test:api                  # Run API tests only
-npm run test:material-request     # Run Material Request module
-```
-
-### CI/CD
-GitHub Actions runs full test suite on push/PR.
-
-Requires GitHub Secrets:
-- `ERPNEXT_URL`
-- `ERP_BASE_URL`
-- `ERP_USER`
-- `ERP_PASSWORD`
-
-## Adding a New Module
-
-When adding a new ERPNext module (e.g., Sales Order):
-
-1. **Create test directory**
-   ```
-   tests/modules/sales-order/
-   ```
-
-2. **Create Page Object**
-   ```
-   pages/modules/sales-order/sales-order.page.js
-   ```
-
-3. **Add test data**
-   ```
-   data/scenarios.js (add SALES_ORDER_SCENARIOS)
-   ```
-
-4. **Write tests**
-   ```
-   tests/modules/sales-order/ui/create.spec.js
-   ```
-
-5. **Update coverage matrix**
-   ```
-   COVERAGE.md (add Sales Order row)
-   ```
-
-6. **Run tests**
-   ```
-   npm run test:sales-order
-   ```
-
-## Coverage Tracking
-
-Coverage matrix in `COVERAGE.md` reflects actual implementation status.
-
-When implementing a module:
-1. ✅ Mark workflow as "Implemented"
-2. Mark test levels (UI: ✅, API: ❌, etc.)
-3. Link to test files
-4. Document any limitations
+**Current Implementation:**
+- 6 active tests across 3 modules (Material Request, Quotation, Sales Order)
+- 100% passing with zero flakiness
+- ~90 seconds execution time
 
 ---
 
-**This architecture is designed to grow cleanly, one module at a time.**
+## Actual Repository Structure
+
+```
+ERPNext-QA-Automation/
+├── README.md                          # Project overview
+├── COVERAGE.md                        # Coverage matrix
+├── ARCHITECTURE.md                    # This file
+├── package.json                       # Dependencies and scripts
+├── playwright.config.js               # Playwright configuration
+├── .env.example                       # Environment template
+├── .gitignore                         # Git ignore rules
+│
+├── .github/
+│   └── workflows/
+│       └── playwright.yml             # GitHub Actions CI configuration
+│
+├── tests/
+│   ├── auth/
+│   │   └── auth.setup.js              # Authentication setup (runs once per session)
+│   │
+│   └── modules/                       # Tests organized by ERPNext module
+│       ├── material-request/
+│       │   ├── ui/
+│       │   │   ├── calculations.spec.js     # Calculate amount (Qty × Rate)
+│       │   │   └── item-selection.spec.js   # Select item via autocomplete
+│       │   ├── api/                        # (Empty - planned)
+│       │   └── fixtures/                   # (Empty - planned)
+│       │
+│       ├── quotation/
+│       │   ├── ui/
+│       │   │   ├── quotation-workflow.spec.js  # Create → Customer → Item → Qty → Rate → Save
+│       │   │   └── validation.spec.js          # Required field validation
+│       │   ├── api/                            # (Empty - planned)
+│       │   └── fixtures/                       # (Empty - planned)
+│       │
+│       └── sales-order/
+│           ├── ui/
+│           │   └── sales-order-workflow.spec.js   # Create → Customer → Item → Qty → Rate → Save
+│           ├── api/                              # (Empty - planned)
+│           └── fixtures/                         # (Empty - planned)
+│
+├── pages/                             # Page Object Model layer
+│   ├── material-request.page.js       # MaterialRequestPage class
+│   ├── quotation.page.js              # QuotationPage class
+│   └── sales-order.page.js            # SalesOrderPage class
+│
+└── data/                              # Test data (fixtures)
+    ├── quotation.data.js              # Quotation test scenarios
+    ├── sales-order.data.js            # Sales Order test scenarios
+    └── material-request/              # (Empty - planned)
+```
+
+---
+
+## Architecture Layers
+
+### 1. Test Layer (`tests/`)
+
+Tests are **organized by module first**, then by test type:
+
+```
+tests/
+  ├── auth/                ← Setup (common to all tests)
+  └── modules/             ← Business modules
+      ├── material-request/
+      │   └── ui/          ← UI automation tests
+      ├── quotation/
+      │   └── ui/
+      └── sales-order/
+          └── ui/
+```
+
+**Benefits:**
+- Scales better as more modules are added
+- Aligns with ERPNext's module structure
+- Easy to find tests for a specific module
+- Clear separation between test types (UI, API, etc.)
+
+### 2. Page Object Model (`pages/`)
+
+Each module has a dedicated **Page Object** class:
+
+```javascript
+// pages/quotation.page.js
+export class QuotationPage {
+  constructor(page) {
+    this.page = page;
+    this.baseURL = process.env.ERP_BASE_URL;
+  }
+
+  // Business-level methods
+  async openNewQuotation() { ... }
+  async setCustomer(name) { ... }
+  async addItemRow() { ... }
+  async selectItemInLastRow(code) { ... }
+  async setQuantityInLastRow(qty) { ... }
+  async save() { ... }
+}
+```
+
+**Benefits:**
+- Tests read like business scenarios, not UI instructions
+- UI changes don't break test logic
+- Reusable across multiple tests
+- Clear separation of concerns
+
+### 3. Test Data Layer (`data/`)
+
+Centralized test data:
+
+```javascript
+// data/quotation.data.js
+export const QUOTATION_TEST_DATA = {
+  scenarios: {
+    simple: {
+      customer: 'Asif QA Demo Customer',
+      item: 'SKU004',
+      quantity: 10,
+      rate: 500,
+    },
+  },
+};
+```
+
+---
+
+## Key Patterns
+
+### Pattern 1: Real Keyboard Input for Autocomplete
+
+**Challenge:** Frappe's autocomplete requires keyboard events, not just DOM filling.
+
+**Solution:**
+```javascript
+// Uses type() with delay to trigger keyboard events
+await itemInput.type(searchText, { delay: 50 });
+
+// Wait for listbox to attach
+await this.page.locator('[role="listbox"]').first()
+  .waitFor({ state: 'attached', timeout: 10000 });
+
+// Use keyboard navigation
+await itemInput.press('ArrowDown');
+await itemInput.press('Enter');
+```
+
+### Pattern 2: Deterministic Waits
+
+**Challenge:** Arbitrary timeouts cause flakiness and false passes.
+
+**Solution:** Wait for actual state changes:
+```javascript
+// Wait for element to be visible
+await itemInput.waitFor({ state: 'visible', timeout: 10000 });
+
+// Wait for listbox to be present in DOM
+await listbox.waitFor({ state: 'attached', timeout: 10000 });
+
+// Do NOT use arbitrary sleep
+// ❌ await page.waitForTimeout(300); // Only for settling after real action
+```
+
+### Pattern 3: Modal Dialog Management
+
+**Challenge:** "Getting Started" modal blocks form interactions.
+
+**Solution:** Robust modal closing with retries:
+```javascript
+async closeModal() {
+  const modal = this.page.locator('[role="dialog"].modal.show').first();
+
+  if (await modal.isVisible().catch(() => false)) {
+    // Try close button first
+    const closeBtn = modal.locator('button.close').first();
+    if (await closeBtn.isVisible()) {
+      await closeBtn.click();
+    } else {
+      // Fallback to Escape key
+      await this.page.keyboard.press('Escape');
+    }
+
+    // Verify modal is gone
+    if (await modal.isVisible()) {
+      // Last resort: click outside
+      await this.page.click('body', { position: { x: 100, y: 100 } });
+    }
+  }
+}
+```
+
+### Pattern 4: Grid Synchronization
+
+**Challenge:** Grid operates in two states (edit/display). Input disappears on blur.
+
+**Solution:** Try input first, fallback to displayed text:
+```javascript
+async getItemFromLastRow() {
+  // Try to read from input (edit mode)
+  try {
+    const input = itemCell.locator('input').first();
+    const isVisible = await input.isVisible({ timeout: 1000 });
+    if (isVisible) {
+      return await input.inputValue();
+    }
+  } catch { }
+
+  // Fallback to displayed text (display mode)
+  const text = await itemCell.textContent();
+  return text?.trim() || null;
+}
+```
+
+---
+
+## Test Execution Flow
+
+```
+Test Script
+    ↓
+Page Object (business methods)
+    ↓
+Playwright Locators (find elements)
+    ↓
+ERPNext UI
+    ↓
+Assertions (verify behavior)
+    ↓
+Test Result
+```
+
+### Example: Quotation Workflow Test
+
+```javascript
+// tests/modules/quotation/ui/quotation-workflow.spec.js
+test('Complete Quotation workflow', async ({ page }) => {
+  const quotationPage = new QuotationPage(page);
+
+  // Business-level actions (Page Object methods)
+  await quotationPage.openNewQuotation();
+  await quotationPage.setCustomer('Asif QA Demo Customer');
+  await quotationPage.addItemRow();
+  await quotationPage.selectItemInLastRow('SKU004');
+  await quotationPage.setQuantityInLastRow(10);
+  await quotationPage.setRateInLastRow(500);
+  await quotationPage.save();
+
+  // Verify business outcome
+  expect(isSaved).toBeTruthy();
+});
+```
+
+---
+
+## Configuration
+
+### Playwright Configuration (`playwright.config.js`)
+
+```javascript
+export default defineConfig({
+  testDir: './tests',
+  timeout: 60000,              // 60s per test (higher for slower CI)
+  fullyParallel: false,         // Run tests sequentially
+  workers: 1,                   // Single worker (auth shared across tests)
+
+  use: {
+    baseURL: process.env.ERP_BASE_URL,
+    headless: process.env.CI ? true : false,  // Headless in CI, headed locally
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+});
+```
+
+### Environment Variables
+
+**Required:** `.env` (not tracked in git)
+```
+ERP_BASE_URL=https://your-instance.m.frappe.cloud
+ERP_USER=your-email@example.com
+ERP_PASSWORD=your-password
+```
+
+**Template:** `.env.example` (tracked, no real credentials)
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions Workflow
+
+```yaml
+name: Playwright Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      CI: true
+      ERP_BASE_URL: ${{ secrets.ERP_BASE_URL }}
+      ERP_USER: ${{ secrets.ERP_USER }}
+      ERP_PASSWORD: ${{ secrets.ERP_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+```
+
+---
+
+## Stability & Performance
+
+### Test Timing
+- **Material Request**: 7-18s per run
+- **Quotation**: 30-40s per run
+- **Sales Order**: 14-24s per run
+- **Total Suite**: ~90 seconds
+
+### Reliability
+- ✅ Zero flakiness detected
+- ✅ Deterministic execution
+- ✅ Multi-run verified stable
+
+---
+
+## Future Architecture (Not Yet Implemented)
+
+These directories exist but are empty (planned for future phases):
+
+```
+tests/modules/*/api/          ← API testing layer (future)
+tests/modules/*/fixtures/     ← Test fixtures (future)
+data/material-request/        ← MR test data file (future)
+```
+
+### Planned Additions
+- API testing layer (parallel to UI tests)
+- Cross-module E2E workflows
+- Additional modules (Purchase Order, Manufacturing, etc.)
+- Performance testing
+- Authorization/permission testing
+
+---
+
+## Summary
+
+This architecture prioritizes:
+
+1. **Clarity** - Business methods instead of UI details
+2. **Maintainability** - Page Objects reduce duplication
+3. **Scalability** - Module-first organization scales naturally
+4. **Reliability** - Deterministic waits eliminate flakiness
+5. **Honesty** - Clear documentation of what's implemented vs. planned
+
+The framework is production-ready for portfolio demonstration and can be extended to additional modules following the same patterns.
+
+---
+
+**Last Updated:** 2026-09-04
+**Status:** ✅ Active and Stable

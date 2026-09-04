@@ -146,8 +146,10 @@ npm install
 # Copy environment template
 cp .env.example .env
 
-# Edit .env with your ERPNext instance URL
-# BASE_URL=https://your-instance.m.frappe.cloud
+# Edit .env with your ERPNext instance URL and credentials
+# ERP_BASE_URL=https://your-instance.m.frappe.cloud
+# ERP_USER=your-email@example.com
+# ERP_PASSWORD=your-password
 ```
 
 ### Running Tests
