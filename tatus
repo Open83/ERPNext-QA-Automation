@@ -1,0 +1,110 @@
+warning: in the working copy of '.env.example', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.github/workflows/playwright.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'playwright.config.js', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/.env.example b/.env.example[m
+[1mindex 23aa57e..018aa3a 100644[m
+[1m--- a/.env.example[m
+[1m+++ b/.env.example[m
+[36m@@ -2,11 +2,12 @@[m
+ # Copy this file to .env and fill in actual values[m
+ # DO NOT commit .env - it should be in .gitignore[m
+ [m
+[31m-# ERPNext Instance URL[m
+[31m-BASE_URL=https://your-erpnext-instance.m.frappe.cloud[m
+[32m+[m[32m# ERPNext Instance URL (required for authentication and tests)[m
+[32m+[m[32mERP_BASE_URL=https://your-erpnext-instance.m.frappe.cloud[m
+ [m
+[31m-# Authentication (if needed)[m
+[31m-# FRAPPE_USERNAME=your-email@example.com[m
+[31m-# FRAPPE_PASSWORD=your-password[m
+[32m+[m[32m# Authentication Credentials (required for auth.setup.js)[m
+[32m+[m[32mERP_USER=your-email@example.com[m
+[32m+[m[32mERP_PASSWORD=your-password[m
+ [m
+[31m-# (Credentials are managed through playwright .auth/ folder, not env vars)[m
+[32m+[m[32m# Note: After first successful authentication, tests reuse stored session[m
+[32m+[m[32m# from playwright/.auth/user.json (excluded from git)[m
+[1mdiff --git a/.github/workflows/playwright.yml b/.github/workflows/playwright.yml[m
+[1mindex 3eb1314..6006111 100644[m
+[1m--- a/.github/workflows/playwright.yml[m
+[1m+++ b/.github/workflows/playwright.yml[m
+[36m@@ -1,27 +1,41 @@[m
+ name: Playwright Tests[m
+[32m+[m
+ on:[m
+   push:[m
+     branches: [ main, master ][m
+   pull_request:[m
+     branches: [ main, master ][m
+[32m+[m
+ jobs:[m
+   test:[m
+     timeout-minutes: 60[m
+     runs-on: ubuntu-latest[m
+[32m+[m
+[32m+[m[32m    env:[m
+[32m+[m[32m      CI: true[m
+[32m+[m[32m      ERP_BASE_URL: ${{ secrets.ERP_BASE_URL }}[m
+[32m+[m[32m      ERP_USER: ${{ secrets.ERP_USER }}[m
+[32m+[m[32m      ERP_PASSWORD: ${{ secrets.ERP_PASSWORD }}[m
+[32m+[m
+     steps:[m
+[31m-    - uses: actions/checkout@v4[m
+[31m-    - uses: actions/setup-node@v4[m
+[31m-      with:[m
+[31m-        node-version: lts/*[m
+[31m-    - name: Install dependencies[m
+[31m-      run: npm ci[m
+[31m-    - name: Install Playwright Browsers[m
+[31m-      run: npx playwright install --with-deps[m
+[31m-    - name: Run Playwright tests[m
+[31m-      run: npx playwright test[m
+[31m-    - uses: actions/upload-artifact@v4[m
+[31m-      if: ${{ !cancelled() }}[m
+[31m-      with:[m
+[31m-        name: playwright-report[m
+[31m-        path: playwright-report/[m
+[31m-        retention-days: 30[m
+[32m+[m[32m      - uses: actions/checkout@v4[m
+[32m+[m
+[32m+[m[32m      - uses: actions/setup-node@v4[m
+[32m+[m[32m        with:[m
+[32m+[m[32m          node-version: lts/*[m
+[32m+[m
+[32m+[m[32m      - name: Install dependencies[m
+[32m+[m[32m        run: npm ci[m
+[32m+[m
+[32m+[m[32m      - name: Install Playwright Browsers[m
+[32m+[m[32m        run: npx playwright install --with-deps[m
+[32m+[m
+[32m+[m[32m      - name: Run Playwright tests[m
+[32m+[m[32m        run: npx playwright test[m
+[32m+[m
+[32m+[m[32m      - uses: actions/upload-artifact@v4[m
+[32m+[m[32m        if: ${{ !cancelled() }}[m
+[32m+[m[32m        with:[m
+[32m+[m[32m          name: playwright-report[m
+[32m+[m[32m          path: playwright-report/[m
+[32m+[m[32m          retention-days: 30[m
+[1mdiff --git a/playwright.config.js b/playwright.config.js[m
+[1mindex f902e46..f3ccc48 100644[m
+[1m--- a/playwright.config.js[m
+[1m+++ b/playwright.config.js[m
+[36m@@ -20,7 +20,7 @@[m [mexport default defineConfig({[m
+   ],[m
+ [m
+   use: {[m
+[31m-    baseURL: process.env.ERPNEXT_URL,[m
+[32m+[m[32m    baseURL: process.env.ERP_BASE_URL,[m
+ [m
+     trace: 'on-first-retry',[m
+ [m
+[36m@@ -28,7 +28,7 @@[m [mexport default defineConfig({[m
+ [m
+     video: 'retain-on-failure',[m
+ [m
+[31m-    headless: false,[m
+[32m+[m[32m    headless: process.env.CI ? true : false,[m
+ [m
+     viewport: {[m
+       width: 1366,[m

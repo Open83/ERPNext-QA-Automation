@@ -20,7 +20,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.ERPNEXT_URL,
+    baseURL: process.env.ERP_BASE_URL,
 
     trace: 'on-first-retry',
 
@@ -28,7 +28,7 @@ export default defineConfig({
 
     video: 'retain-on-failure',
 
-    headless: false,
+    headless: process.env.CI ? true : false,
 
     viewport: {
       width: 1366,
