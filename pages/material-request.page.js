@@ -14,7 +14,8 @@ export class MaterialRequestPage {
    */
   async goToNew() {
     await this.page.goto(`${this.baseURL}/app/material-request/new`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
     });
 
     // Verify not redirected to login

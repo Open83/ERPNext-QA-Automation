@@ -9,7 +9,7 @@
 export class QuotationPage {
   constructor(page) {
     this.page = page;
-    this.baseURL = process.env.BASE_URL || 'https://asif-erpnext-qa.m.frappe.cloud';
+    this.baseURL = process.env.ERP_BASE_URL;
   }
 
   // ==================== NAVIGATION ====================
@@ -75,7 +75,7 @@ export class QuotationPage {
     const partyNameField = this.page.locator('[data-fieldname="party_name"]').first();
 
     // Wait for field to be visible
-    await partyNameField.waitFor({ state: 'visible', timeout: 5000 });
+    await partyNameField.waitFor({ state: 'visible', timeout: 10000 });
 
     // Find the input within the field
     const input = partyNameField.locator('input').first();
@@ -130,7 +130,7 @@ export class QuotationPage {
     await addRowBtn.click();
 
     // Wait for new row to appear
-    await this.page.locator('[data-fieldname="items"] .grid-row, [data-fieldname="items"] tr.grid-row').nth(currentRowCount).waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    await this.page.locator('[data-fieldname="items"] .grid-row, [data-fieldname="items"] tr.grid-row').nth(currentRowCount).waitFor({ state: 'visible', timeout: 10000 });
 
     return currentRowCount;
   }
@@ -141,76 +141,87 @@ export class QuotationPage {
     const rowCount = await rows.count();
     const lastRow = rows.nth(rowCount - 1);
 
-    // Click on Item Code cell to activate edit mode
-    const itemCodeCell = lastRow.locator('[data-fieldname="item_code"]');
-    await itemCodeCell.click();
+    // Click on Item Code input directly (not container)
+    const itemInput = lastRow.locator('input[data-fieldname="item_code"]').first();
 
-    // Wait for input to appear
-    const input = itemCodeCell.locator('input, [contenteditable]');
-    await input.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    // Click to activate edit mode
+    await itemInput.click();
 
-    // Clear and type item code
-    await input.clear();
-    await input.fill(itemCode);
+    // Wait for input to be visible and ready
+    await itemInput.waitFor({ state: 'visible', timeout: 10000 });
 
-    // Wait for autocomplete dropdown
-    await this.page.locator('[role="option"]').first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    // Clear existing value
+    await itemInput.clear();
 
-    // Click first matching option
-    await this.page.locator('[role="option"]').first().click().catch(async () => {
-      // Fallback: press Enter
-      await input.press('Enter');
-    });
+    // Use keyboard input (not fill) to trigger Frappe's autocomplete event handlers
+    // Frappe's awesomplete library relies on keyboard events (keyup, input) to show the dropdown
+    await itemInput.type(itemCode, { delay: 50 });
 
-    // Wait for selection to complete and dropdown to close
+    // Wait for listbox to be present (autocomplete rendering)
+    await this.page.locator('[role="listbox"]').first().waitFor({ state: 'attached', timeout: 10000 });
+
+    // Use keyboard navigation to select the first option
+    // ArrowDown moves to first option, Enter confirms selection
+    await itemInput.press('ArrowDown');
+    await itemInput.press('Enter');
+
+    // Wait for dropdown to close and selection to settle
     await this.page.waitForTimeout(500);
   }
 
   async setQuantityInLastRow(quantity) {
+    // Close any modal that might have appeared
+    await this.closeModal();
+
     const rows = this.page.locator('[data-fieldname="items"] .grid-row, [data-fieldname="items"] tr.grid-row');
     const rowCount = await rows.count();
     const lastRow = rows.nth(rowCount - 1);
 
-    // Click on Quantity cell
-    const qtyCell = lastRow.locator('[data-fieldname="qty"]');
-    await qtyCell.click();
+    // Click on Quantity input directly
+    const qtyInput = lastRow.locator('input[data-fieldname="qty"]').first();
 
-    // Wait for input to appear
-    const input = qtyCell.locator('input, [contenteditable]');
-    await input.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    // Click to activate edit mode
+    await qtyInput.click();
 
-    // Clear and enter quantity
-    await input.clear();
-    await input.fill(String(quantity));
+    // Wait for input to be visible and ready
+    await qtyInput.waitFor({ state: 'visible', timeout: 10000 });
 
-    // Blur to trigger calculation
-    await input.blur();
+    // Clear and fill with quantity
+    await qtyInput.clear();
+    await qtyInput.fill(String(quantity));
 
-    // Wait for recalculation
+    // Blur to trigger calculation and commit value
+    await qtyInput.blur();
+
+    // Wait for calculation to complete
     await this.page.waitForTimeout(500);
   }
 
   async setRateInLastRow(rate) {
+    // Close any modal that might have appeared
+    await this.closeModal();
+
     const rows = this.page.locator('[data-fieldname="items"] .grid-row, [data-fieldname="items"] tr.grid-row');
     const rowCount = await rows.count();
     const lastRow = rows.nth(rowCount - 1);
 
-    // Click on Rate cell
-    const rateCell = lastRow.locator('[data-fieldname="rate"]');
-    await rateCell.click();
+    // Click on Rate input directly
+    const rateInput = lastRow.locator('input[data-fieldname="rate"]').first();
 
-    // Wait for input to appear
-    const input = rateCell.locator('input, [contenteditable]');
-    await input.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    // Click to activate edit mode
+    await rateInput.click();
 
-    // Clear and enter rate
-    await input.clear();
-    await input.fill(String(rate));
+    // Wait for input to be visible and ready
+    await rateInput.waitFor({ state: 'visible', timeout: 10000 });
 
-    // Blur to trigger calculation
-    await input.blur();
+    // Clear and fill with rate
+    await rateInput.clear();
+    await rateInput.fill(String(rate));
 
-    // Wait for recalculation
+    // Blur to trigger calculation and commit value
+    await rateInput.blur();
+
+    // Wait for calculation to complete
     await this.page.waitForTimeout(500);
   }
 

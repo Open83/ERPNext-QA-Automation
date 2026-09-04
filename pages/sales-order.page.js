@@ -9,7 +9,7 @@
 export class SalesOrderPage {
   constructor(page) {
     this.page = page;
-    this.baseURL = process.env.BASE_URL || 'https://asif-erpnext-qa.m.frappe.cloud';
+    this.baseURL = process.env.ERP_BASE_URL;
   }
 
   // ==================== NAVIGATION ====================
@@ -114,50 +114,84 @@ export class SalesOrderPage {
     const lastRow = itemRows.nth(rowCount - 1);
 
     const itemInput = lastRow.locator('input[data-fieldname="item_code"]').first();
+
+    // Click to activate edit mode
     await itemInput.click();
-    await this.page.waitForTimeout(300);
 
-    await itemInput.fill(itemCode);
-    await this.page.waitForTimeout(500);
+    // Wait for input to be ready (deterministic wait, not arbitrary timeout)
+    await itemInput.waitFor({ state: 'visible', timeout: 10000 });
 
-    const itemOption = this.page.locator(`[role="option"]`).first();
-    if (await itemOption.isVisible().catch(() => false)) {
-      await itemOption.click();
-    } else {
-      await itemInput.press('Enter');
-    }
+    // Clear existing value
+    await itemInput.clear();
 
+    // Use keyboard input (not fill) to trigger Frappe's autocomplete event handlers
+    // Frappe's awesomplete library relies on keyboard events (keyup, input) to show the dropdown
+    await itemInput.type(itemCode, { delay: 50 });
+
+    // Wait for listbox to be present (autocomplete rendering)
+    await this.page.locator('[role="listbox"]').first().waitFor({ state: 'attached', timeout: 10000 });
+
+    // Use keyboard navigation to select the first option
+    // ArrowDown moves to first option, Enter confirms selection
+    await itemInput.press('ArrowDown');
+    await itemInput.press('Enter');
+
+    // Wait for dropdown to close and selection to settle
     await this.page.waitForTimeout(500);
   }
 
   async setQuantityInLastRow(quantity) {
+    // Close any modal that might have appeared
+    await this.closeModal();
+
     const itemRows = this.page.locator('[data-fieldname="items"] .data-row.editable-row');
     const rowCount = await itemRows.count();
     const lastRow = itemRows.nth(rowCount - 1);
 
     const qtyInput = lastRow.locator('input[data-fieldname="qty"]').first();
     if (await qtyInput.count() > 0) {
+      // Click to activate edit mode
       await qtyInput.click();
-      await this.page.waitForTimeout(300);
+
+      // Wait for input to be visible and ready
+      await qtyInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+
+      // Clear and fill with quantity
       await qtyInput.clear();
       await qtyInput.fill(String(quantity));
+
+      // Blur to trigger calculation and commit value
       await qtyInput.blur();
+
+      // Wait for calculation to complete
       await this.page.waitForTimeout(300);
     }
   }
 
   async setRateInLastRow(rate) {
+    // Close any modal that might have appeared
+    await this.closeModal();
+
     const itemRows = this.page.locator('[data-fieldname="items"] .data-row.editable-row');
     const rowCount = await itemRows.count();
     const lastRow = itemRows.nth(rowCount - 1);
 
     const rateInput = lastRow.locator('input[data-fieldname="rate"]').first();
     if (await rateInput.count() > 0) {
+      // Click to activate edit mode
       await rateInput.click();
-      await this.page.waitForTimeout(300);
+
+      // Wait for input to be visible and ready
+      await rateInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+
+      // Clear and fill with rate
       await rateInput.clear();
       await rateInput.fill(String(rate));
+
+      // Blur to trigger calculation and commit value
       await rateInput.blur();
+
+      // Wait for calculation to complete
       await this.page.waitForTimeout(300);
     }
   }
