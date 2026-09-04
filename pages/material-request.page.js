@@ -65,43 +65,39 @@ export class MaterialRequestPage {
     const lastRowIndex = (await rows.count()) - 1;
     const lastRow = rows.nth(lastRowIndex);
 
-    // Get the Item Code field in the last row
-    const itemCodeField = lastRow.locator('[data-fieldname="item_code"]').first();
-    await itemCodeField.waitFor({ state: 'visible', timeout: 5000 });
+    // Get the Item Code input field in the last row
+    const itemCodeInput = lastRow.locator('input[data-fieldname="item_code"]').first();
 
-    // Click to enter edit mode
-    await itemCodeField.click();
+    // Click to activate edit mode
+    await itemCodeInput.click();
 
-    // Type search text - try to find input, or type directly on field
-    try {
-      const input = itemCodeField.locator('input').first();
-      await input.waitFor({ state: 'visible', timeout: 2000 });
-      await input.fill(searchText);
-    } catch {
-      // Fallback: type directly on field
-      await itemCodeField.type(searchText, { delay: 50 });
-    }
+    // Wait for input to be visible and ready
+    await itemCodeInput.waitFor({ state: 'visible', timeout: 10000 });
 
-    // Wait for autocomplete to appear
-    const autocompleteOption = this.page.locator('[role="option"]').first();
-    await autocompleteOption.waitFor({ state: 'visible', timeout: 5000 });
+    // Clear existing value
+    await itemCodeInput.clear();
 
-    // Get the selected item text before clicking
-    const selectedItemText = await autocompleteOption.textContent();
+    // Use keyboard input to trigger Frappe's autocomplete event handlers
+    // Frappe's awesomplete library relies on keyboard events to show the dropdown
+    await itemCodeInput.type(searchText, { delay: 50 });
+
+    // Wait for listbox to be present (autocomplete rendering)
+    await this.page.locator('[role="listbox"]').first().waitFor({ state: 'attached', timeout: 10000 });
+
+    // Use keyboard navigation to select the first option
+    // ArrowDown moves to first option, Enter confirms selection
+    await itemCodeInput.press('ArrowDown');
+
+    // Get the selected item text from the now-focused option
+    const selectedOption = this.page.locator('[role="option"][aria-selected="true"]').first();
+    const selectedItemText = await selectedOption.textContent();
     console.log(`Selecting item: ${selectedItemText?.trim()}`);
 
-    // Click the first autocomplete option
-    await autocompleteOption.click();
+    // Confirm selection with Enter
+    await itemCodeInput.press('Enter');
 
-    // Wait for autocomplete dropdown to close (grid exits edit mode)
-    await this.page
-      .locator('[role="option"]')
-      .first()
-      .waitFor({ state: 'hidden', timeout: 3000 })
-      .catch(() => null);
-
-    // Wait a moment for grid to fully update after selection
-    await this.page.waitForTimeout(300);
+    // Wait for dropdown to close and selection to settle
+    await this.page.waitForTimeout(500);
 
     // Return the selected item value (extract from displayed text)
     return selectedItemText?.split(',')[0]?.trim() || selectedItemText?.trim();
