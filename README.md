@@ -275,14 +275,29 @@ No flakiness detected. Consistent execution times.
 - ✅ No financial data created
 - ✅ Safe for public sharing
 
-## Documentation
+## QA Proof of Work
+
+This repository includes comprehensive documentation demonstrating professional QA practice:
+
+### Core Documentation
+- **[qa-strategy.md](docs/qa-strategy.md)** - Testing objectives, scope definition, approach, and risk thinking
+- **[test-coverage-matrix.md](docs/test-coverage-matrix.md)** - Complete matrix of 6 tests with scenarios and status
+- **[test-execution-report.md](docs/test-execution-report.md)** - Verified execution results (6/6 passing, 0 flaky)
+- **[root-cause-analysis.md](docs/root-cause-analysis.md)** - Frappe autocomplete investigation and resolution
+- **[automation-architecture.md](docs/automation-architecture.md)** - Technical design, patterns, and layer architecture
+- **[ci-cd.md](docs/ci-cd.md)** - GitHub Actions pipeline configuration and execution
+
+### Professional Artifacts
+- **[engineering-finding.md](docs/engineering-finding.md)** - Detailed technical finding (autocomplete synchronization issue)
+- **[final-qa-report.md](docs/final-qa-report.md)** - Executive summary for hiring managers
+- **[portfolio-case-study.md](docs/portfolio-case-study.md)** - Narrative case study for presentation
+
+See [docs/README.md](docs/README.md) for complete documentation index.
+
+## Project Documentation (Original)
 
 - **README.md** - This file, project overview
-- **COVERAGE.md** - Test matrix and implementation status
 - **ARCHITECTURE.md** - Framework design and patterns
-- **TECHNICAL_NOTES.md** - Implementation details and discoveries
-- **PROJECT_VISION.md** - Project scope and objectives
-- **FINAL_PROJECT_STATUS.md** - Comprehensive status report
 
 ## Next Steps (If Continuing)
 
